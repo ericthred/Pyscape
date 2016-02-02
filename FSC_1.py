@@ -169,19 +169,21 @@ def v_plot(h_in, d_in, s_in):
 # dx, dy = (xl/(nx-1), yl/(ny-1))
 # dd = np.sqrt(dx**2 + dy**2)
 # nn = nx*ny
-
-# set the timestep vector
-dt = 1000. # years
-
-# number of timesteps
-nstep = 1000
-
-# set the parameters of the stream power law
-n = 1.
-m = n*0.4
-
-# initial conditions
+#
+# # set the timestep vector
+# dt = 1000. # years
+#
+# # number of timesteps
+# nstep = 1000
+#
+# # set the parameters of the stream power law
+# n = 1.
+# m = n*0.4
+#
+# # initial conditions
 # h = np.random.rand(nn)
+
+# test grid
 h = np.array([9,0,0,0,6,6,6,5,4,3,
               2,2,2,2,5,5,5,4,4,2,
               3,3,3,3,5,4,3,2,1,0,
