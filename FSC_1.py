@@ -48,7 +48,7 @@ def boundary_conditions(BC):
         return make_nbor
 
 
-def receiver(h, nx, ny, nn, dx, dy, dd, make_nbor):
+def receiver():
     rec = np.arange(nn) # receiver array
     vector = np.zeros(nn) # vector array
     direction = 4*np.ones(nn) # direction array
@@ -75,7 +75,7 @@ def receiver(h, nx, ny, nn, dx, dy, dd, make_nbor):
     return rec, vector, direction
 
 
-def donor_list(rec, nn):
+def donor_list():
     ndon = np.zeros(nn, dtype=int)
     donor = -1*np.ones((nn,8), dtype=int)
     for ij in range(nn):
@@ -87,9 +87,10 @@ def donor_list(rec, nn):
     return donor, ndon
 
 
-def make_stack(nn, ):
+def make_stack():
+    global count
     base_levels = rec[rec == range(nn)]
-    stack = np.zeros(nn)
+    stack = np.zeros(nn, dtype=int)
     count = 0
 
     def add_to_stack(ijk):
@@ -103,12 +104,15 @@ def make_stack(nn, ):
     for base in base_levels:
         add_to_stack(base)
 
+    return stack
+
 
 def pland(h_in):
     cmap = sns.cubehelix_palette(8, as_cmap=True)
-    plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
-    # plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
-    plt.colorbar()
+    # plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
+    plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
+    plt.axis('equal')
+    # plt.colorbar()
     plt.show()
 
 
@@ -116,7 +120,6 @@ def v_plot(h_in, d_in, s_in):
 
     fig = plt.figure(1)
     h_in = h_in.reshape(ny, nx, order='C')
-    # d_in = d_in.reshape(ny, nx, order='C')
     cmap = sns.cubehelix_palette(8, as_cmap=True)
     plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
     # plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
@@ -156,44 +159,44 @@ def v_plot(h_in, d_in, s_in):
     qy = np.arange(ny)*dy + dy/2.
     qU = (dx*U).reshape(ny,nx)
     qV = (dy*V).reshape(ny,nx)
-    Q = plt.quiver(qx,qy,qU,qV, scale=max([xl,yl]))
+    Q = plt.quiver(qx,qy,qU,qV, scale=max([xl,yl])*2.)
     plt.axis('equal')
     plt.show()
 
 
-# # set the scale of the grid
-# xl, yl = (100.e3, 100.e3) # meters
-#
-# # set the resolution of the grid
-# nx, ny = (31, 51)
-# dx, dy = (xl/(nx-1), yl/(ny-1))
-# dd = np.sqrt(dx**2 + dy**2)
-# nn = nx*ny
-#
-# # set the timestep vector
-# dt = 1000. # years
-#
-# # number of timesteps
-# nstep = 1000
-#
-# # set the parameters of the stream power law
-# n = 1.
-# m = n*0.4
-#
-# # initial conditions
-# h = np.random.rand(nn)
+# set the scale of the grid
+xl, yl = (100.e3, 100.e3) # meters
 
-# test grid
-h = np.array([9,0,0,0,6,6,6,5,4,3,
-              2,2,2,2,5,5,5,4,4,2,
-              3,3,3,3,5,4,3,2,1,0,
-              2,2,2,2,5,5,5,4,4,2,
-              0,0,0,0,6,6,6,5,4,3])
-nx, ny = (10, 5)
-xl, yl = (10, 5) # meters
+# set the resolution of the grid
+nx, ny = (31, 51)
 dx, dy = (xl/(nx-1), yl/(ny-1))
 dd = np.sqrt(dx**2 + dy**2)
 nn = nx*ny
+
+# set the timestep vector
+dt = 1000. # years
+
+# number of timesteps
+nstep = 1000
+
+# set the parameters of the stream power law
+n = 1.
+m = n*0.4
+
+# initial conditions
+h = np.random.rand(nn)
+
+# # test grid
+# h = np.array([9,0,0,0,6,6,6,5,4,3,
+#               2,2,2,2,5,5,5,4,4,2,
+#               3,3,3,3,5,4,3,2,1,0,
+#               2,2,2,2,5,5,5,4,4,2,
+#               0,0,0,0,6,6,6,5,4,3])
+# nx, ny = (10, 5)
+# xl, yl = (10, 5) # meters
+# dx, dy = (xl/(nx-1), yl/(ny-1))
+# dd = np.sqrt(dx**2 + dy**2)
+# nn = nx*ny
 
 # pland(h)
 
@@ -206,18 +209,18 @@ make_nbor = boundary_conditions(0)
 # make_nbor = boundary_conditions(2)
 
 # calculate the receiver array
-rec, vector, direction = receiver(h, nx, ny, nn, dx, dy, dd, make_nbor)
-# print 'receiver:\n', np.reshape(rec, (5,10))
+rec, vector, direction = receiver()
+# print 'receiver:\n', np.reshape(rec, (ny,nx))
 # pland(rec)
 
 # calculate the donor array
-donors, ndon = donor_list(rec, nn)
+donors, ndon = donor_list()
+# print 'ndon:\n', np.reshape(ndon, (ny,nx))
+pland(ndon)
 
-# print 'ndon:\n', np.reshape(ndon, (5,10))
-# pland(ndon)
-
-
-
-# print stack
+# calculate the stack
+stack = make_stack()
+print 'stack:\n', np.reshape(stack, (ny,nx))
+pland(stack)
 
 v_plot(h, direction, vector)
