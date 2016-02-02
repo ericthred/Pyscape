@@ -1,7 +1,25 @@
-import numpy as np, matplotlib.pyplot as plt, seaborn as sns
-sns.set(style='darkgrid')
-sns.set_context("paper")
-plt.close()
+import numpy as np
+# import seaborn as sns
+import plotly.plotly as py
+import plotly.tools as tls
+import plotly.graph_objs as go
+from plotly.tools import FigureFactory as FF
+
+
+
+# x1 = [1, 2, 3, 5, 6]
+# y1 = [1, 4.5, 7, 24, 38]
+#
+# # (2) Make dictionary linking x and y coordinate lists to 'x' and 'y' keys
+# trace1 = dict(x=x1, y=y1)
+#
+# # (3) Make list of 1 trace, to be sent to Plotly
+# data = [trace1]
+#
+#
+# # (@) Call the plot() function of the plotly.plotly submodule,
+# #     save figure as 's0_first_plot'
+# py.plot(data, filename='s0_first_plot')
 
 
 def boundary_conditions(BC):
@@ -48,7 +66,7 @@ def boundary_conditions(BC):
         return make_nbor
 
 
-def receiver(h, nx, ny, nn, dx, dy, dd, make_nbor):
+def receiver():
     rec = np.arange(nn) # receiver array
     vector = np.zeros(nn) # vector array
     direction = 4*np.ones(nn) # direction array
@@ -75,7 +93,7 @@ def receiver(h, nx, ny, nn, dx, dy, dd, make_nbor):
     return rec, vector, direction
 
 
-def donor_list(rec, nn):
+def donor_list():
     ndon = np.zeros(nn, dtype=int)
     donor = -1*np.ones((nn,8), dtype=int)
     for ij in range(nn):
@@ -87,9 +105,10 @@ def donor_list(rec, nn):
     return donor, ndon
 
 
-def make_stack(nn, ):
+def make_stack():
+    global count
     base_levels = rec[rec == range(nn)]
-    stack = np.zeros(nn)
+    stack = np.zeros(nn, dtype=int)
     count = 0
 
     def add_to_stack(ijk):
@@ -103,26 +122,50 @@ def make_stack(nn, ):
     for base in base_levels:
         add_to_stack(base)
 
+    return stack
+
 
 def pland(h_in):
-    cmap = sns.cubehelix_palette(8, as_cmap=True)
-    plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
-    # plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
-    plt.colorbar()
-    plt.show()
+    # cmap = sns.cubehelix_palette(8)
+    ii = range(nx)
+    jj = range(ny)
+    zz = h_in.reshape(ny,nx)
+    # annotate plot with i and j
+    annotations = []
+    for n, row in enumerate(zz):
+        for m, val in enumerate(row):
+            var = zz[n][m]
+            annotations.append(
+                dict(
+                    text=str(val),
+                    x=np.round(ii[m]), y=np.round(jj[n]),
+                    xref='x1', yref='y1',
+                    font=dict(color='black'),
+                    showarrow=False)
+                )
+
+    trace = [go.Heatmap(x=ii, y=jj, z=zz, colorscale='RdBu', showscale=False)]
+
+    fig = go.Figure(data=trace)
+    fig['layout'].update(
+        title="Annotated Heatmap",
+        # annotations=annotations,
+        xaxis=dict(ticks='', side='top'),
+        # ticksuffix is a workaround to add a bit of padding
+        yaxis=dict(ticks='', ticksuffix='  '),
+        width=1000*nx/max([nx,ny]),
+        height=1000*ny/max([nx,ny]),
+        autosize=False
+    )
+
+    py.plot(fig, filename='labelled_heatmap')
 
 
 def v_plot(h_in, d_in, s_in):
-
-    fig = plt.figure(1)
-    h_in = h_in.reshape(ny, nx, order='C')
-    # d_in = d_in.reshape(ny, nx, order='C')
-    cmap = sns.cubehelix_palette(8, as_cmap=True)
-    plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
-    # plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
-    s_in = s_in/s_in.max()
-    U = np.zeros(nn)
-    V = np.zeros(nn)
+    # set up x and y arrow vectors
+    U = np.zeros(nn) # x vector
+    V = np.zeros(nn) # y vector
+    # assign the proper vector direction based on the recieving neighbour
     for ij in range(nn):
         if d_in[ij] == 0:
             U[ij] = -1
@@ -152,48 +195,106 @@ def v_plot(h_in, d_in, s_in):
             U[ij] = 1
             V[ij] = 1
 
-    qx = np.arange(nx)*dx + dx/2.
-    qy = np.arange(ny)*dy + dy/2.
+    # make a grid of the x and y locations of all the points
+    qx, qy = np.meshgrid(   np.arange(nx)*dx + dx/2.,
+                            np.arange(ny)*dy + dy/2.)
+    # reshape the U and V arrow vectors into a grid
     qU = (dx*U).reshape(ny,nx)
     qV = (dy*V).reshape(ny,nx)
-    Q = plt.quiver(qx,qy,qU,qV, scale=max([xl,yl]))
-    plt.axis('equal')
-    plt.show()
+
+    # create a plotly quiver figure using the vectors I made
+    fig = FF.create_quiver(qx, qy, qU, qV,
+                       scale=.9,
+                       arrow_scale=.1,
+                       name='quiver',
+                       line=dict(width=1))
+
+    # identify all the base points and pits
+    base_levels = rec[rec == range(nn)]
+
+    # create x and y locations for those base points
+    x2 = np.mod(base_levels, nx)*dx + dx/2.
+    y2 = np.floor(base_levels/nx)*dy + dy/2.
+    # create a plotly scatter plot object using those locations
+    points = go.Scatter(x=x2, y=y2,
+                    mode='markers',
+                    marker=dict(size=12),
+                    name='points')
+
+    # Add points to quiver figure
+    fig['data'].append(points)
+
+    # send to plotly
+    py.plot(fig, filename='Quiver with Points')
+
+    # ii = range(nx)
+    # jj = range(ny)
+    # zz = h_in.reshape(ny,nx)
+    # # annotate plot with i and j
+    # annotations = []
+    # for n, row in enumerate(zz):
+    #     for m, val in enumerate(row):
+    #         var = zz[n][m]
+    #         annotations.append(
+    #             dict(
+    #                 text=str(val),
+    #                 x=ii[m], y=jj[n],
+    #                 xref='x1', yref='y1',
+    #                 font=dict(color='black'),
+    #                 showarrow=False)
+    #             )
+    #
+    # trace = [go.Heatmap(x=ii, y=jj, z=zz, colorscale='RdBu', showscale=False)]
+    # fig['layout'].update(
+    #     title="Quiver Heatmap",
+    #     annotations=annotations,
+    #     xaxis=dict(ticks='', side='top'),
+    #     # ticksuffix is a workaround to add a bit of padding
+    #     yaxis=dict(ticks='', ticksuffix='  '),
+    #     width=1000,
+    #     height=500,
+    #     autosize=False
+    # )
+    # add data to figure
+    # fig['data'].append(trace)
+    # Q = plt.quiver(qx,qy,qU,qV, scale=max([xl,yl]))
+    # plt.axis('equal')
+    # plt.show()
 
 
-# # set the scale of the grid
-# xl, yl = (100.e3, 100.e3) # meters
-#
-# # set the resolution of the grid
-# nx, ny = (31, 51)
-# dx, dy = (xl/(nx-1), yl/(ny-1))
-# dd = np.sqrt(dx**2 + dy**2)
-# nn = nx*ny
-#
-# # set the timestep vector
-# dt = 1000. # years
-#
-# # number of timesteps
-# nstep = 1000
-#
-# # set the parameters of the stream power law
-# n = 1.
-# m = n*0.4
-#
-# # initial conditions
-# h = np.random.rand(nn)
+# set the scale of the grid
+xl, yl = (100.e3, 100.e3) # meters
 
-# test grid
-h = np.array([9,0,0,0,6,6,6,5,4,3,
-              2,2,2,2,5,5,5,4,4,2,
-              3,3,3,3,5,4,3,2,1,0,
-              2,2,2,2,5,5,5,4,4,2,
-              0,0,0,0,6,6,6,5,4,3])
-nx, ny = (10, 5)
-xl, yl = (10, 5) # meters
+# set the resolution of the grid
+nx, ny = (31, 51)
 dx, dy = (xl/(nx-1), yl/(ny-1))
 dd = np.sqrt(dx**2 + dy**2)
 nn = nx*ny
+
+# set the timestep vector
+dt = 1000. # years
+
+# number of timesteps
+nstep = 1000
+
+# set the parameters of the stream power law
+n = 1.
+m = n*0.4
+
+# initial conditions
+h = np.random.rand(nn)
+
+# # test grid
+# h = np.array([9,0,0,0,6,6,6,5,4,3,
+#               2,2,2,2,5,5,5,4,4,2,
+#               3,3,3,3,5,4,3,2,1,0,
+#               2,2,2,2,5,5,5,4,4,2,
+#               0,0,0,0,6,6,6,5,4,3])
+# nx, ny = (10, 5)
+# xl, yl = (10, 5) # meters
+# dx, dy = (xl/(nx-1), yl/(ny-1))
+# dd = np.sqrt(dx**2 + dy**2)
+# nn = nx*ny
 
 # pland(h)
 
@@ -206,18 +307,18 @@ make_nbor = boundary_conditions(0)
 # make_nbor = boundary_conditions(2)
 
 # calculate the receiver array
-rec, vector, direction = receiver(h, nx, ny, nn, dx, dy, dd, make_nbor)
-# print 'receiver:\n', np.reshape(rec, (5,10))
+rec, vector, direction = receiver()
+# print 'receiver:\n', np.reshape(rec, (ny,nx))
 # pland(rec)
 
 # calculate the donor array
-donors, ndon = donor_list(rec, nn)
+donors, ndon = donor_list()
+# print 'ndon:\n', np.reshape(ndon, (ny,nx))
+pland(ndon)
 
-# print 'ndon:\n', np.reshape(ndon, (5,10))
-# pland(ndon)
+# calculate the stack
+stack = make_stack()
+print 'stack:\n', np.reshape(stack, (ny,nx))
+pland(stack)
 
-
-
-# print stack
-
-v_plot(h, direction, vector)
+# v_plot(h, direction, vector)
