@@ -57,7 +57,7 @@ def receiver(h, nx, ny, nn, dx, dy, dd, make_nbor):
     ii_ranges = [range(1,nx-1), [0], [nx-1], range(1,nx-1), range(1,nx-1), [0], [nx-1], [0], [nx-1]]
     jj_ranges = [range(1,ny-1), range(1,ny-1), range(1,ny-1), [0], [ny-1], [0], [0], [ny-1], [ny-1]]
 
-    for xx in range(1):
+    for xx in range(9):
         nbor_list = make_nbor(xx)
         for jj in jj_ranges[xx]:
             for ii in ii_ranges[xx]:
@@ -102,6 +102,7 @@ def make_stack(nn, ):
 
     for base in base_levels:
         add_to_stack(base)
+
 
 def pland(h_in):
     cmap = sns.cubehelix_palette(8, as_cmap=True)
@@ -155,19 +156,19 @@ def v_plot(h_in, d_in, s_in):
     qy = np.arange(ny)*dy + dy/2.
     qU = (dx*U).reshape(ny,nx)
     qV = (dy*V).reshape(ny,nx)
-    Q = plt.quiver(qx,qy,qU,qV, scale=max([xl,yl])*2.)
+    Q = plt.quiver(qx,qy,qU,qV, scale=max([xl,yl]))
     plt.axis('equal')
     plt.show()
 
 
-# set the scale of the grid
-xl, yl = (100.e3, 100.e3) # meters
-
-# set the resolution of the grid
-nx, ny = (31, 51)
-dx, dy = (xl/(nx-1), yl/(ny-1))
-dd = np.sqrt(dx**2 + dy**2)
-nn = nx*ny
+# # set the scale of the grid
+# xl, yl = (100.e3, 100.e3) # meters
+#
+# # set the resolution of the grid
+# nx, ny = (31, 51)
+# dx, dy = (xl/(nx-1), yl/(ny-1))
+# dd = np.sqrt(dx**2 + dy**2)
+# nn = nx*ny
 
 # set the timestep vector
 dt = 1000. # years
@@ -180,7 +181,7 @@ n = 1.
 m = n*0.4
 
 # initial conditions
-h = np.random.rand(nn)
+# h = np.random.rand(nn)
 h = np.array([9,0,0,0,6,6,6,5,4,3,
               2,2,2,2,5,5,5,4,4,2,
               3,3,3,3,5,4,3,2,1,0,
@@ -188,6 +189,8 @@ h = np.array([9,0,0,0,6,6,6,5,4,3,
               0,0,0,0,6,6,6,5,4,3])
 nx, ny = (10, 5)
 xl, yl = (10, 5) # meters
+dx, dy = (xl/(nx-1), yl/(ny-1))
+dd = np.sqrt(dx**2 + dy**2)
 nn = nx*ny
 
 # pland(h)
@@ -213,6 +216,6 @@ donors, ndon = donor_list(rec, nn)
 
 
 
-print stack
+# print stack
 
-# v_plot(h, direction, vector)
+v_plot(h, direction, vector)
