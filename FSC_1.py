@@ -88,40 +88,69 @@ def donor_list():
 
 
 def make_stack():
-    global count
+    # make nstack global so it works in recursive algy
+    global nstack
+    # find all baselevel points
     base_levels = rec[rec == range(nn)]
+    # initialise stack
     stack = np.zeros(nn, dtype=int)
-    count = 0
+    colour = np.zeros(nn, dtype=int)
+    # initialise stack counter
+    nstack = 0
 
-    def add_to_stack(ijk):
-        global count
-        stack[count] = ijk
-        count += 1
+    # define recursive stack function
+    def add_to_stack(ijk, c_flag):
+        # make nstack global so it works in recursive algy
+        global nstack
+        # but node on the stack
+        stack[nstack]  = ijk
+        colour[ijk] = c_flag
+        # increase counter by one
+        nstack += 1
+
+        # iterate over nodes donors
         for donor in donors[ijk,:ndon[ijk]]:
-            if donor != -1:
-                add_to_stack(donor)
+            # start process over by calling stack algy on donor
+            add_to_stack(donor, c_flag)
 
+    # call recursive algy on all base level points
+    c_count = 0
     for base in base_levels:
-        add_to_stack(base)
+        add_to_stack(base, c_count)
+        c_count += 1
 
-    return stack
+    # return the stack
+    return stack, colour
+
+
+def calculate_area():
+    # reverse the stack
+    rstack = np.flipud(stack)
+    # iterate over the stack, adding the area
+    A = np.ones(nn) * dx * dy
+    for ij in rstack:
+        if rec[ij] != ij:
+            A[rec[ij]] += A[ij]
+
+    return A
 
 
 def pland(h_in):
     cmap = sns.cubehelix_palette(8, as_cmap=True)
-    # plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
-    plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
+    plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
+    # plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
     plt.axis('equal')
-    # plt.colorbar()
+    plt.colorbar()
     plt.show()
 
 
 def v_plot(h_in, d_in, s_in):
-
     fig = plt.figure(1)
+
     h_in = h_in.reshape(ny, nx, order='C')
-    cmap = sns.cubehelix_palette(8, as_cmap=True)
+    cmap = sns.cubehelix_palette(8, as_cmap=True, dark=0.3)
     plt.pcolormesh(h_in.reshape(ny, nx, order='C'), cmap=cmap)
+    plt.colorbar()
     # plt.contourf(h_in.reshape(ny, nx, order='C'), cmap=cmap)
     s_in = s_in/s_in.max()
     U = np.zeros(nn)
@@ -161,6 +190,8 @@ def v_plot(h_in, d_in, s_in):
     qV = (dy*V).reshape(ny,nx)
     Q = plt.quiver(qx,qy,qU,qV, scale=max([xl,yl])*2.)
     plt.axis('equal')
+    plt.xlim([0, nx])
+    plt.ylim([0, ny])
     plt.show()
 
 
@@ -186,17 +217,17 @@ m = n*0.4
 # initial conditions
 h = np.random.rand(nn)
 
-# # test grid
-# h = np.array([9,0,0,0,6,6,6,5,4,3,
-#               2,2,2,2,5,5,5,4,4,2,
-#               3,3,3,3,5,4,3,2,1,0,
-#               2,2,2,2,5,5,5,4,4,2,
-#               0,0,0,0,6,6,6,5,4,3])
-# nx, ny = (10, 5)
-# xl, yl = (10, 5) # meters
-# dx, dy = (xl/(nx-1), yl/(ny-1))
-# dd = np.sqrt(dx**2 + dy**2)
-# nn = nx*ny
+# test grid
+h = np.array([9,0,0,0,6,6,6,5,4,3,
+              2,2,2,2,5,5,5,4,4,2,
+              3,3,3,3,5,4,3,2,1,0,
+              2,2,2,2,5,5,5,4,4,2,
+              0,0,0,0,6,6,6,5,4,3])
+nx, ny = (10, 5)
+xl, yl = (10, 5) # meters
+dx, dy = (xl/(nx-1), yl/(ny-1))
+dd = np.sqrt(dx**2 + dy**2)
+nn = nx*ny
 
 # pland(h)
 
@@ -216,11 +247,17 @@ rec, vector, direction = receiver()
 # calculate the donor array
 donors, ndon = donor_list()
 # print 'ndon:\n', np.reshape(ndon, (ny,nx))
-pland(ndon)
+# pland(ndon)
 
 # calculate the stack
-stack = make_stack()
-print 'stack:\n', np.reshape(stack, (ny,nx))
-pland(stack)
+stack, colour = make_stack()
+# print 'stack:\n', np.reshape(stack, (ny,nx))
+# pland(stack)
+# pland(colour)
+
+# calculate the catchment area for each node
+A = calculate_area()
 
 v_plot(h, direction, vector)
+v_plot(colour, direction, vector)
+v_plot(A, direction, vector)
